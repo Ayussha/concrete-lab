@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concrete Lab</title>
+<meta name="description" content="Offline concrete testing laboratory records and certificates to IS 456, IS 516 and related Indian Standards.">
+<meta name="theme-color" content="#14304d">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header class="app-bar no-print">
+  <a class="brand" href="#/">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span class="brand-text">Concrete&nbsp;Lab</span>
+  </a>
+  <nav>
+    <a href="#/">Dashboard</a>
+    <a href="#/jobs">Jobs</a>
+    <a href="#/register">Register</a>
+    <a href="#/standards">Standards</a>
+    <a href="#/settings">Settings</a>
+  </nav>
+</header>
+
+<main id="view"></main>
+
+<footer class="app-foot no-print">
+  <p>Records are stored in this browser on this device only. Export a backup from
+     Settings regularly.</p>
+  <p>Calculations follow IS 456:2000, IS 516, IS 1199, IS 5816, IS 10262, IS 4031,
+     IS 2386, IS 383, IS 13311, ASTM C1202 and NT Build 492. Check the values the
+     app uses against your own current copies of the standards before issuing
+     certificates.</p>
+</footer>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<noscript>
+  <p style="padding:2rem">This application needs JavaScript to run. All processing
+     happens in your browser; nothing is sent to a server.</p>
+</noscript>
+
+<script src="js/standards.js"></script>
+<script src="js/tests.js"></script>
+<script src="js/tests-materials.js"></script>
+<script src="js/db.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/reports.js"></script>
+<script src="js/app.js"></script>
+<script>
+  App.start();
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    navigator.serviceWorker.register('sw.js').catch(function () {
+      /* The app works without the service worker; it only adds offline
+         caching when served over http(s). */
+    });
+  }
+</script>
+</body>
+</html>

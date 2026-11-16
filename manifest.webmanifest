@@ -1,0 +1,19 @@
+{
+  "name": "Concrete Testing Laboratory",
+  "short_name": "Concrete Lab",
+  "description": "Offline records and test certificates for a concrete testing laboratory, to IS 456, IS 516 and related standards.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f5f6f8",
+  "theme_color": "#14304d",
+  "icons": [
+    {
+      "src": "assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

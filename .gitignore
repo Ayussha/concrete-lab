@@ -1,0 +1,20 @@
+# dependencies (the app itself has none; Playwright is only for tests)
+node_modules/
+package-lock.json
+
+# editor and OS noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# test output
+/tmp/
+test-results/
+playwright-report/
+*.png.tmp
+
+# never commit real lab records or client data
+*backup*.json
+*register*.csv
