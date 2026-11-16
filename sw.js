@@ -8,7 +8,7 @@
  * serving the previous version.
  */
 
-const CACHE = 'concrete-lab-v3';
+const CACHE = 'concrete-lab-v4';
 /* index.html is self-contained (see build.js), so the shell is just this. */
 const FILES = [
   './',

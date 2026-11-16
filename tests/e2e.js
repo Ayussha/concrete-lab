@@ -18,6 +18,7 @@ const MIME = { '.html':'text/html', '.js':'text/javascript', '.css':'text/css',
 const server = http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split('?')[0]);
   if (p === '/') p = '/index.html';
+  if (p === '/tests/blank') { res.writeHead(200, { 'Content-Type': 'text/html' }); res.end('<!doctype html><title>host</title>'); return; }
   const file = path.join(ROOT, p);
   if (!file.startsWith(ROOT) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
     res.writeHead(404); res.end('not found'); return;
@@ -307,6 +308,39 @@ function bad(msg) { problems.push(msg); console.log('  FAIL ' + msg); }
       await fp.close();
     }
     fs.rmSync(lone, { recursive: true, force: true });
+
+    /* ---- inside a sandboxed preview frame (no storage allowed) ---- */
+    {
+      const sp = await browser.newPage();
+      const errs = [];
+      sp.on('pageerror', e => errs.push(e.message));
+      sp.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
+      await sp.goto(base + '/tests/blank');           /* any http page as host */
+      await sp.setContent('<iframe id="f" sandbox="allow-scripts" ' +
+        'style="width:1200px;height:900px"></iframe>');
+      await sp.evaluate(html => { document.getElementById('f').srcdoc = html; },
+        fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8'));
+      const fr = sp.frameLocator('#f');
+      try {
+        await fr.locator('#view .empty, #view .stats').first().waitFor({ timeout: 8000 });
+        if (await fr.locator('.storage-warning').count()) ok('sandboxed preview: app opens and warns that nothing is saved');
+        else bad('sandboxed preview: no storage warning shown');
+        await fr.locator('nav a', { hasText: 'Jobs' }).click();
+        await fr.locator('h1', { hasText: 'Jobs' }).waitFor({ timeout: 5000 });
+        ok('sandboxed preview: navigation links work');
+        await fr.locator('a', { hasText: 'New job' }).first().click();
+        await fr.locator('[data-k="jobNo"]').fill('PREVIEW-1');
+        await fr.locator('[data-k="clientName"]').fill('Test');
+        await fr.locator('button', { hasText: 'Save job' }).click();
+        await fr.locator('h1', { hasText: 'PREVIEW-1' }).waitFor({ timeout: 5000 });
+        ok('sandboxed preview: a job can be created on the temporary copy');
+        if (!errs.length) ok('sandboxed preview: no script errors');
+        else bad('sandboxed preview errors: ' + JSON.stringify(errs));
+      } catch (e) {
+        bad('sandboxed preview failed: ' + e.message + ' ' + JSON.stringify(errs));
+      }
+      await sp.close();
+    }
 
     /* the development page, which loads the separate files, still works */
     const dp = await browser.newPage();

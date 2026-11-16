@@ -106,6 +106,12 @@ a  { color: var(--accent); }
 .app-bar nav a:hover { color: #fff; }
 .app-bar nav a.active { color: #fff; border-bottom-color: #fff; }
 
+.storage-warning {
+  background: var(--warn-bg); color: var(--warn);
+  border-bottom: 1px solid var(--warn); padding: .7rem 1rem;
+  font-size: .9rem; line-height: 1.45;
+}
+
 main { max-width: 1120px; margin: 0 auto; padding: 1.25rem 1rem 3rem; }
 
 .app-foot {

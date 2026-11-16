@@ -53,12 +53,14 @@
 <script src="js/app.js"></script>
 <script>
   App.start();
-  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-    navigator.serviceWorker.register('sw.js').catch(function () {
-      /* The app works without the service worker; it only adds offline
-         caching when served over http(s). */
-    });
-  }
+  /* Reading navigator.serviceWorker throws inside a sandboxed preview,
+     so the whole thing is guarded. The app works without it; it only
+     adds offline caching when served over http(s). */
+  try {
+    if (location.protocol !== 'file:' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    }
+  } catch (e) { /* not available here */ }
 </script>
 </body>
 </html>

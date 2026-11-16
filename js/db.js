@@ -21,10 +21,25 @@ const DB = (function () {
   const VERSION = 1;
   let _db = null;
 
+  /* When the browser refuses IndexedDB — a sandboxed file preview, some
+     private windows — the app keeps working on a temporary in-memory copy
+     so it can still be looked at, and App shows a warning that nothing
+     will be saved. MEM is null whenever real storage is in use. */
+  let MEM = null;
+  let MEM_REASON = '';
+  function useMemory(err) {
+    MEM = { settings: {}, clients: {}, jobs: {}, tests: {} };
+    MEM_REASON = (err && err.message) || 'The browser blocked local storage.';
+  }
+  function clone(o) { return o === undefined ? undefined : JSON.parse(JSON.stringify(o)); }
+
   function open() {
+    if (MEM) return Promise.resolve(null);
     if (_db) return Promise.resolve(_db);
-    return new Promise((resolve, reject) => {
-      const req = indexedDB.open(NAME, VERSION);
+    return new Promise(resolve => {
+      let req;
+      try { req = indexedDB.open(NAME, VERSION); }
+      catch (e) { useMemory(e); resolve(null); return; }
       req.onupgradeneeded = function (e) {
         const db = e.target.result;
         if (!db.objectStoreNames.contains('settings')) {
@@ -49,8 +64,8 @@ const DB = (function () {
       };
       req.onsuccess = function (e) { _db = e.target.result; resolve(_db); };
       req.onerror = function (e) {
-        reject(new Error('Could not open the local database: ' +
-          (e.target.error && e.target.error.message)));
+        if (e && e.preventDefault) e.preventDefault();
+        useMemory(e.target.error); resolve(null);
       };
     });
   }
@@ -71,20 +86,32 @@ const DB = (function () {
     if (!obj.id) obj.id = uid();
     obj.updatedAt = new Date().toISOString();
     if (!obj.createdAt) obj.createdAt = obj.updatedAt;
-    return tx(store, 'readwrite').then(s => wrap(s.put(obj))).then(() => obj);
+    return open().then(() => {
+      if (MEM) { MEM[store][obj.id] = clone(obj); return obj; }
+      return tx(store, 'readwrite').then(s => wrap(s.put(obj))).then(() => obj);
+    });
   }
   function get(store, id) {
-    return tx(store, 'readonly').then(s => wrap(s.get(id)));
+    return open().then(() => MEM
+      ? clone(MEM[store][id])
+      : tx(store, 'readonly').then(s => wrap(s.get(id))));
   }
   function all(store) {
-    return tx(store, 'readonly').then(s => wrap(s.getAll()));
+    return open().then(() => MEM
+      ? Object.keys(MEM[store]).map(k => clone(MEM[store][k]))
+      : tx(store, 'readonly').then(s => wrap(s.getAll())));
   }
   function byIndex(store, index, value) {
-    return tx(store, 'readonly')
-      .then(s => wrap(s.index(index).getAll(value)));
+    return open().then(() => MEM
+      ? Object.keys(MEM[store]).map(k => MEM[store][k])
+          .filter(r => r[index] === value).map(clone)
+      : tx(store, 'readonly').then(s => wrap(s.index(index).getAll(value))));
   }
   function remove(store, id) {
-    return tx(store, 'readwrite').then(s => wrap(s.delete(id)));
+    return open().then(() => {
+      if (MEM) { delete MEM[store][id]; return undefined; }
+      return tx(store, 'readwrite').then(s => wrap(s.delete(id)));
+    });
   }
 
   function uid() {
@@ -150,7 +177,19 @@ const DB = (function () {
         'exported from this app.'));
     }
     const stores = ['clients', 'jobs', 'tests'];
-    return open().then(db => new Promise((resolve, reject) => {
+    return open().then(db => {
+      if (!MEM) return db;
+      if (replace) stores.forEach(n => { MEM[n] = {}; });
+      stores.forEach(n => (data[n] || []).forEach(rec => {
+        if (rec && rec.id) MEM[n][rec.id] = clone(rec);
+      }));
+      if (data.settings) MEM.settings.lab = Object.assign({}, clone(data.settings), { id: 'lab' });
+      return null;
+    }).then(db => db === null ? {
+      clients: (data.clients || []).length,
+      jobs: (data.jobs || []).length,
+      tests: (data.tests || []).length
+    } : new Promise((resolve, reject) => {
       const t = db.transaction(stores.concat('settings'), 'readwrite');
       t.onerror = () => reject(t.error);
       t.oncomplete = () => resolve({
@@ -172,7 +211,9 @@ const DB = (function () {
   }
 
   function wipe() {
-    return open().then(db => new Promise((resolve, reject) => {
+    return open().then(db => MEM
+      ? void (MEM = { settings: {}, clients: {}, jobs: {}, tests: {} })
+      : new Promise((resolve, reject) => {
       const stores = ['clients', 'jobs', 'tests', 'settings'];
       const t = db.transaction(stores, 'readwrite');
       t.onerror = () => reject(t.error);
@@ -187,6 +228,8 @@ const DB = (function () {
     getSettings: getSettings, saveSettings: saveSettings,
     nextCertificateNumber: nextCertificateNumber,
     exportAll: exportAll, importAll: importAll, wipe: wipe,
+    isTemporary: function () { return !!MEM; },
+    temporaryReason: function () { return MEM_REASON; },
     DEFAULT_SETTINGS: DEFAULT_SETTINGS
   };
 })();

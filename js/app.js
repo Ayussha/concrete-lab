@@ -964,16 +964,38 @@ const App = (function () {
     });
   }
 
+  /* Shown when records cannot be saved, so nobody enters a day's results
+     into a page that will forget them. */
+  function showStorageWarning() {
+    if (UI.qs('.storage-warning')) return;
+    const bar = el('div', { class: 'storage-warning no-print', role: 'alert' }, [
+      el('strong', { text: 'Preview only \u2014 nothing you enter here will be saved. ' }),
+      el('span', { text: 'This page is being shown somewhere that blocks browser ' +
+        'storage, such as a file preview window. To keep records, open ' +
+        'index.html in Chrome or Edge: in File Explorer, double-click the file.' })
+    ]);
+    const main = UI.qs('main');
+    main.parentNode.insertBefore(bar, main);
+  }
+
   function start() {
     window.addEventListener('hashchange', route);
+
+    /* Inside a preview frame, "#/jobs" links resolve against the host
+       page's address rather than this document, so following them would
+       load the wrong page. Setting the hash directly always works. */
+    document.addEventListener('click', function (e) {
+      const a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+      if (!a || e.defaultPrevented || e.button !== 0 ||
+          e.ctrlKey || e.metaKey || e.shiftKey) return;
+      e.preventDefault();
+      const target = a.getAttribute('href');
+      if (location.hash === target) route(); else location.hash = target;
+    });
+
     DB.open().then(() => {
+      if (DB.isTemporary()) showStorageWarning();
       route();
-    }).catch(e => {
-      UI.qs('#view').appendChild(UI.emptyState(
-        'Local storage is unavailable',
-        'This app stores records in the browser database. ' + e.message +
-        ' Private browsing windows and some locked-down browser settings block it.',
-        null, null));
     });
   }
 

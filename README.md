@@ -90,6 +90,11 @@ site data, switching browser, using a private window, or reinstalling the
 operating system will lose the records. Export a backup from Settings
 regularly and keep it off the device.
 
+If the page is shown somewhere that blocks browser storage — a file preview
+window in OneDrive or a chat app, for example — the app still opens, but on a
+temporary copy, and shows a warning that nothing will be saved. Open
+`index.html` in Chrome or Edge itself to keep records.
+
 Backups are plain JSON and restore additively, so you can also use them to move
 records between devices, or to merge results recorded on a lab tablet into the
 office machine.
