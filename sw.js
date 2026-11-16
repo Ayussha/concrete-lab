@@ -4,24 +4,17 @@
  * Caches the application shell so the app opens with no network at all.
  * Records never pass through here; they live in IndexedDB.
  *
- * Bump CACHE when any file in FILES changes, or browsers will keep
+ * Bump CACHE whenever index.html is rebuilt, or browsers will keep
  * serving the previous version.
  */
 
-const CACHE = 'concrete-lab-v2';
+const CACHE = 'concrete-lab-v3';
+/* index.html is self-contained (see build.js), so the shell is just this. */
 const FILES = [
   './',
   './index.html',
   './manifest.webmanifest',
-  './assets/icon.svg',
-  './css/styles.css',
-  './js/standards.js',
-  './js/tests.js',
-  './js/tests-materials.js',
-  './js/db.js',
-  './js/ui.js',
-  './js/reports.js',
-  './js/app.js'
+  './assets/icon.svg'
 ];
 
 self.addEventListener('install', event => {

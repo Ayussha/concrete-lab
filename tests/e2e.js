@@ -282,6 +282,42 @@ function bad(msg) { problems.push(msg); console.log('  FAIL ' + msg); }
     if (/not found/i.test(nf)) ok('unknown routes show a not-found state');
     else bad('unknown route did not render the not-found state');
 
+    /* ---- opened as a local file, the way a double-click opens it ---- */
+    const os = require('os');
+    const lone = fs.mkdtempSync(path.join(os.tmpdir(), 'cl-lone-'));
+    fs.copyFileSync(path.join(ROOT, 'index.html'), path.join(lone, 'index.html'));
+    for (const [label, file] of [
+      ['in the project folder', path.join(ROOT, 'index.html')],
+      ['alone, with no css/ or js/ folders beside it', path.join(lone, 'index.html')]
+    ]) {
+      const fp = await browser.newPage();
+      const errs = [];
+      fp.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
+      fp.on('pageerror', e => errs.push(e.message));
+      await fp.goto('file://' + file);
+      try {
+        await fp.waitForSelector('#view .empty, #view .stats', { timeout: 8000 });
+        const styled = await fp.evaluate(() =>
+          getComputedStyle(document.querySelector('.app-bar')).position === 'sticky');
+        if (styled && !errs.length) ok('double-clicked index.html works ' + label);
+        else bad('index.html ' + label + ': styled=' + styled + ', errors=' + JSON.stringify(errs));
+      } catch (e) {
+        bad('index.html ' + label + ' did not start: ' + e.message + ' ' + JSON.stringify(errs));
+      }
+      await fp.close();
+    }
+    fs.rmSync(lone, { recursive: true, force: true });
+
+    /* the development page, which loads the separate files, still works */
+    const dp = await browser.newPage();
+    const derrs = [];
+    dp.on('pageerror', e => derrs.push(e.message));
+    await dp.goto(base + '/dev.html');
+    await dp.waitForSelector('#view .empty, #view .stats', { timeout: 8000 });
+    if (!derrs.length) ok('dev.html still runs from the separate source files');
+    else bad('dev.html errors: ' + derrs.join('; '));
+    await dp.close();
+
   } catch (e) {
     bad('threw during the walkthrough: ' + e.message);
   }

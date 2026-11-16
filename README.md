@@ -63,7 +63,11 @@ substitute for the standard.
 
 ## Running it
 
-Open `index.html` in a browser. That is the whole installation.
+Double-click `index.html`. That is the whole installation.
+
+`index.html` is a single self-contained file: the design and all the code are
+inside it, so it works on its own. Copy just that one file to a desktop, a USB
+stick or another computer and it still runs.
 
 To serve it over http, which enables the service worker and lets you install it
 as an app on a tablet:
@@ -93,7 +97,9 @@ office machine.
 ## Project layout
 
 ```
-index.html              application shell and script loading
+index.html              THE APP — one self-contained file, built by build.js
+dev.html                development shell that loads css/ and js/ separately
+build.js                inlines css/ and js/ into index.html
 manifest.webmanifest    installable-app metadata
 sw.js                   offline cache for the shell
 css/styles.css          screen interface and the printed certificate
@@ -109,6 +115,19 @@ tests/smoke.js          runs every test definition's compute()
 tests/e2e.js            drives the real app in Chromium
 assets/                 icons
 ```
+
+## Making changes
+
+Edit the files in `css/` and `js/`, and use `dev.html` to try them out, since
+it loads the separate files directly. Then rebuild the app file:
+
+```bash
+node build.js
+```
+
+Never edit `index.html` by hand: every build overwrites it. When the rebuilt
+version is published, also bump `CACHE` in `sw.js` so installed copies pick up
+the change.
 
 ## How to add a test
 
@@ -163,6 +182,10 @@ with Chromium; install it with `npm install playwright && npx playwright
 install chromium`.
 
 Run `SHOTS=1 node tests/e2e.js` to also write screenshots to `/tmp`.
+
+`e2e.js` also opens `index.html` straight from disk, both in the project
+folder and copied alone into an empty folder, to prove a double-click works.
+Run `node build.js` first so it tests your latest changes.
 
 If you change `standards.js`, run `verify.js` before committing. It is the file
 where a mistake turns into a wrong certificate.
